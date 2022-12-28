@@ -1,7 +1,8 @@
 import requests
 import json
 
-TOKEN = "token.txt"
+
+TOKEN = "TFpmKLsjnGbQYYwbFX5vggLgv0Rdft"
 api_prefix = "https://api.keeptruckin.com/api/i1/dispatch_share?token="
 googlemap_prefix = "https://www.google.com/maps/dir"
 
@@ -29,7 +30,7 @@ def generate_api_link(url):
 
 
 def load_trip(motive_link):   
-    headers = {'X-Internal-Api-Key': get_token(TOKEN)}
+    headers = {'X-Internal-Api-Key': TOKEN}#get_token(TOKEN)
     data = requests.get(generate_api_link(motive_link), headers=headers)
     data = data.text
     trip = []
@@ -55,14 +56,13 @@ def load_trip(motive_link):
 
 
 def main():
-    print("\nRunning...\n")
-    motive_link = input("Enter the GoMotive Dispatch Link: ")
+    motive_link = input("Enter the GoMotive dispatch url or close the Program : ")
     try:       
         trip = load_trip(motive_link)
         print("\nCopy the Following Link and Send to Drivers:\n"+"\n"+generate_route_plan(googlemap_prefix, trip)+"\n")
     except:
-        print("Error, Please Enter a Valid Link!\n")
-
-
+        print("\nError! Please enter a valid url or close the program\n")
+    main()
+    
 if __name__ == "__main__":
     main()
