@@ -1,10 +1,11 @@
 import requests
 import json
+import urllib
 
 # Motive Token
 TOKEN = "Token.txt"
 api_prefix = "https://api.keeptruckin.com/api/i1/dispatch_share?token="
-googlemap_prefix = "https://www.google.com/maps/dir"
+googlemap_prefix = "www.google.com/maps/dir"
 
 
 def get_token(TOKEN):
@@ -22,7 +23,8 @@ def generate_route_plan(gm_prefix, trip):
     while i < len(trip):
         url += "/${"+trip[i]+"}"
         i += 1
-    return str(url)
+    url_link = urllib.parse.quote(url)    
+    return ('https://'+url_link)
 
 # extract token from a link
 
@@ -63,24 +65,13 @@ def load_trip(motive_link):
     return trip
 
 
-def convert_hyperlink(uri, label=None):
-    if label is None:
-        label = uri
-    parameters = ''
-
-    # OSC 8 ; params ; URI ST <name> OSC 8 ;; ST
-    escape_mask = '\033]8;{};{}\033\\{}\033]8;;\033\\'
-
-    return escape_mask.format(parameters, uri, label)
-
-
 def main():
     motive_link = input(
         "Enter the GoMotive dispatch url or close the Program : ")
     try:
         trip = load_trip(motive_link)
         print("\nCopy the Following Link and Send to Drivers:\n" +
-              "\n"+convert_hyperlink(generate_route_plan(googlemap_prefix, trip))+"\n")
+              "\n"+generate_route_plan(googlemap_prefix, trip)+"\n")
     except:
         print("\nError! Please enter a valid url or close the program\n")
     main()
