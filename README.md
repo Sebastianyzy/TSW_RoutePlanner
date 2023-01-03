@@ -7,7 +7,7 @@ A Route Planning Tool for the TSW Dispatch Function.
 Iteracts with the GoMotive Api, extract trip data, and generates a google map route planner.
 
 **Installation**\
-`pip3 install requests`
+`pip install requests`
 
 **To Run**\
 To run the program `python RoutePlanner.py`d
