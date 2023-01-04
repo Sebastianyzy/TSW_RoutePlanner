@@ -19,12 +19,12 @@ def get_token(TOKEN):
 
 def generate_route_plan(gm_prefix, trip):
     i = 0
-    url = gm_prefix
+    temp = gm_prefix
     while i < len(trip):
-        url += "/${"+trip[i]+"}"
+        temp += "/${"+trip[i]+"}"
         i += 1
-    url_link = urllib.parse.quote(url)    
-    return ('https://'+url_link)
+    url = urllib.parse.quote(temp)
+    return ('https://'+url)
 
 # extract token from a link
 
@@ -66,8 +66,11 @@ def load_trip(motive_link):
 
 
 def main():
-    motive_link = input(
+    try:
+        motive_link = input(
         "Enter the GoMotive dispatch url or close the Program : ")
+    except KeyboardInterrupt:
+        main()    
     try:
         trip = load_trip(motive_link)
         print("\nCopy the Following Link and Send to Drivers:\n" +
