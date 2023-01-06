@@ -10,8 +10,8 @@ Iteracts with the GoMotive Api, extract trip data, and generates a google map ro
 `pip install requests`
 
 **To Run**\
-Create 3 text files: `Admin.txt`,`Token.txt`,`TSW_Token.txt`
-Store `admin_id` into `Admin.txt`, `X-Internal-Api-Key` into `Token.txt` and TSW's private token into `TSW_Token.txt`
+Create 2 text files: `Token.txt`,`TSW_Token.txt`
+Store `X-Internal-Api-Key` into `Token.txt` and TSW's private token into `TSW_Token.txt`
 To run the program, run: `python RoutePlanner.py`
 In the Motive App, open `Dispatch` tab, select a trip and click `Share` to get the dispatch instance.
 
