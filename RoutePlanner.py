@@ -2,6 +2,7 @@ import requests
 import json
 import urllib
 import urllib.parse
+from urllib.parse import quote
 
 
 # Motive Token
@@ -13,6 +14,8 @@ api_message = "https://api.keeptruckin.com/v1/messages?"
 api_role = "https://api.keeptruckin.com/v1/users?"
 googlemap_prefix = "www.google.com/maps/dir"
 
+
+
 # use this function to get token and admin id, do not push the txt files to git
 
 
@@ -23,8 +26,6 @@ def get_file_content(file):
         file.close()
     except:
         print("\nError! Unable to get file: {}\n".format(file))
-        return
-
     return content
 
 # concatenate the googlemap link with all the locations in trip list
@@ -48,13 +49,15 @@ def generate_api_link(url):
         splitted = url.split("token=")
     except:
         print("\nError! Unable to extract token from link: \n{}".format(url))
-        return
     return api_prefix+splitted[1]
 
 
 def load_trip(motive_link):
     trip = []
     order_number = "Unknown order_number"
+    first_stop = "Unknown Departure"
+    last_stop = "Unknown Destination"
+    num_of_stops = "Unknown Stops"
     try:
         headers = {'X-Internal-Api-Key': get_file_content(TOKEN)}  # TOKEN
         data = requests.get(generate_api_link(motive_link), headers=headers)
@@ -62,22 +65,34 @@ def load_trip(motive_link):
         # use a list to store all addresses
 
         parse_json = json.loads(data)
-        # start
+
+        # company name
+        company = parse_json["dispatch"]["company"]["name"]
+        # last stop before heading back
         consignee_dispatch_location = parse_json["dispatch"]["consignee_dispatch_location"]
         # first stop
         shipper_dispatch_location = parse_json["dispatch"]["shipper_dispatch_location"]
         # the rest of the stops
+
         dispatch_stops = parse_json["dispatch"]["dispatch_stops"]
+
         consignee = consignee_dispatch_location["address1"]+", "+consignee_dispatch_location["city"]+", " + \
             consignee_dispatch_location["state"]+" "+consignee_dispatch_location["zip"] + \
             ", " + consignee_dispatch_location["country"]
         shipper = shipper_dispatch_location["address1"]+", "+shipper_dispatch_location["city"]+", " + \
             shipper_dispatch_location["state"]+" "+shipper_dispatch_location["zip"] + \
             ", " + shipper_dispatch_location["country"]
-        trip.append(consignee)
+        first_stop = "{}, {}".format(
+            shipper_dispatch_location["city"], shipper_dispatch_location["state"])
+        last_stop = "{}, {}".format(
+            consignee_dispatch_location["city"], consignee_dispatch_location["state"])
+        trip.append(company)
         trip.append(shipper)
+        # create a hash map to sort the stops
+        hash_map = {}
         i = 0
-        while (i < len(dispatch_stops)):
+        while i < len(dispatch_stops):
+            stops_number = dispatch_stops[i]["dispatch_stop"]["number"]
             dispatch_parse = dispatch_stops[i]["dispatch_stop"]["dispatch_location"]
             customer_address = dispatch_parse["address1"]
             customer_city = dispatch_parse["city"]
@@ -86,19 +101,24 @@ def load_trip(motive_link):
             customer_country = dispatch_parse["country"]
             address_to_append = customer_address+", "+customer_city+", " + \
                 customer_province+" "+customer_zip + ", " + customer_country
-            trip.append(address_to_append)
+            hash_map[stops_number] = address_to_append
             i += 1
-        # final destination is the origin
+        # sotre the sorted stops into trip
+        for v in sorted(hash_map.keys()):
+            trip.append(hash_map[v])
+        # last stop before heading back
         trip.append(consignee)
+        # final destination is the origin
+        trip.append(company)
         # order_number on GoMotive is the date data
         order_number = parse_json["dispatch"]["order_number"]
-        # return the trip list and the date of the dispatch
+        num_of_stops = len(trip)-2
     except:
         print("\nError! Unable to load trip\n")
-    return trip, order_number
+    return trip, order_number, first_stop, last_stop, num_of_stops
 
 
-def get_driver_id(url, TOKEN):
+def get_driver_id_from_dispatch_instance(url, TOKEN):
     driver_id = "Unknown id"
     try:
         headers = {'X-Internal-Api-Key': get_file_content(TOKEN)}
@@ -111,14 +131,14 @@ def get_driver_id(url, TOKEN):
     return str(driver_id)
 
 
-def get_user_name(driver_id, TOKEN):
+def get_user_name(user_id, TOKEN):
     driver_name = "Anonymous"
     try:
         headers = {
             "accept": "application/json",
             "X-Api-Key": get_file_content(TOKEN)
         }
-        data = requests.get(api_user+driver_id, headers=headers)
+        data = requests.get(api_user+user_id, headers=headers)
         data = data.text
         parse_json = json.loads(data)
         driver_name = parse_json["user"]["first_name"] + \
@@ -131,8 +151,8 @@ def get_user_name(driver_id, TOKEN):
 def get_role_list(role, per_page, page_no, TOKEN):
     role_list = []
     try:
-        url = "https://api.keeptruckin.com/v1/users?role={}&per_page={}&page_no={}".format(
-            role, per_page, page_no)
+        url = "{}role={}&per_page={}&page_no={}".format(
+            api_role, role, per_page, page_no)
         headers = {
             "accept": "application/json",
             "X-Api-Key": get_file_content(TOKEN)
@@ -148,16 +168,14 @@ def get_role_list(role, per_page, page_no, TOKEN):
         print("\nError! Unable to get {} list".format(role))
     return role_list
 
-
 def send_message(recipient_id, message_body, TOKEN):
+    url = "{}recipient_id={}&body={}\n\n".format(
+        api_message, recipient_id, message_body)
     headers = {
         "accept": "application/json",
         "X-Api-Key": get_file_content(TOKEN),
     }
-
-    requests.post("{}recipient_id={}&body={}\n\n".format(
-        api_message, recipient_id, message_body), headers=headers)
-    # requests.post("https://api.keeptruckin.com/v1/messages?recipient_id=3744311&body="+link,headers=headers)
+    requests.post(url, headers=headers)
     return
 
 
@@ -168,24 +186,26 @@ def main():
     except KeyboardInterrupt:
         main()
     try:
-        trip, order_number = load_trip(motive_link)
+        trip, order_number, first_stop, last_stop, num_of_stops = load_trip(
+            motive_link)
         url = generate_route_plan(googlemap_prefix, trip)
-        driver_id = get_driver_id(motive_link, TOKEN)
+        url = quote(url)
+        driver_id = get_driver_id_from_dispatch_instance(motive_link, TOKEN)
         driver_name = get_user_name(driver_id, TSW_TOKEN)
 
         message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n-------------------------------------------------------------\n".format(
             driver_name, driver_id)
-        message_body = "Google Map Route URL For: {}\n\n{}".format(
-            order_number, url)
+        message_body = "Google Map Route Plan\n\nDate: {}\nDriver: {}\nTrip: {} --> {} ({} stops)\n\n{}\n".format(
+            order_number, driver_name, first_stop, last_stop, num_of_stops, url)
 
-        # send message to driver
-        send_message(driver_id, message_body, TSW_TOKEN)
         # get all the admin_id
         ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
-        # send a copy of the message to all admins
-        for admin in ADMINS:
-            send_message(admin, message_to_admin+message_body, TSW_TOKEN)
+        # send message to driver
+        send_message(driver_id, message_body, TSW_TOKEN)
 
+        # send a copy of the message to all admins
+        for i in ADMINS:
+            send_message(i, message_to_admin+message_body, TSW_TOKEN)
         print(message_to_admin+message_body)
 
     except:
@@ -195,3 +215,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+#
