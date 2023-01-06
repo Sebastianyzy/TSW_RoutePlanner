@@ -163,9 +163,8 @@ def send_message(recipient_id, message_body, TOKEN):
 
 def main():
     try:
-        # motive_link = input(
-        #     "Enter the GoMotive dispatch url or close the Program : ")
-        motive_link = testlk
+        motive_link = input(
+            "Enter the GoMotive dispatch url or close the Program : ")
     except KeyboardInterrupt:
         main()
     try:
