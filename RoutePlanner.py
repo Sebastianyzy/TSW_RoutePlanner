@@ -10,12 +10,12 @@ TOKEN = "Token.txt"
 TSW_TOKEN = "TSW_Token.txt"
 api_prefix = "https://api.keeptruckin.com/api/i1/dispatch_share?token="
 api_user = "https://api.keeptruckin.com/v1/users/"
-api_message = "https://api.keeptruckin.com/v1/messages?"
+api_message = "https://api.keeptruckin.com/v2/messages?"
 api_role = "https://api.keeptruckin.com/v1/users?"
 googlemap_prefix = "www.google.com/maps/dir"
 
 
-# use this function to get the token, do not push the txt files to git
+# use this function to get token and admin id, do not push the txt files to git
 
 
 def get_file_content(file):
@@ -34,7 +34,7 @@ def generate_route_plan(gm_prefix, trip):
     i = 0
     temp = gm_prefix
     while i < len(trip):
-        temp += '/${'+trip[i]+'}'
+        temp += '/{}'.format(trip[i].replace(" ", "+"))
         i += 1
     # url format are different in motive's text editor and python terminal
     url_terminal = "https://{}".format(urllib.parse.quote(temp))
@@ -123,7 +123,7 @@ def load_trip(motive_link):
 
 
 def get_driver_id_from_dispatch_instance(url, TOKEN):
-    driver_id = "Unknown id"
+    driver_id = "unknown"
     try:
         headers = {'X-Internal-Api-Key': get_file_content(TOKEN)}
         data = requests.get(generate_api_link(url), headers=headers)
@@ -134,9 +134,11 @@ def get_driver_id_from_dispatch_instance(url, TOKEN):
         print("\nError! Unable to get the driver's id! \n")
     return str(driver_id)
 
+# return the user's name
+
 
 def get_user_name(user_id, TOKEN):
-    user_name = "Anonymous"
+    user_name = "anonymous"
     try:
         headers = {
             "accept": "application/json",
@@ -150,6 +152,8 @@ def get_user_name(user_id, TOKEN):
     except:
         print("\nError! Unable to get user's name! ")
     return str(user_name)
+
+# return a list which contain all members with the same role
 
 
 def get_role_list(role, per_page, page_no, TOKEN):
@@ -173,51 +177,61 @@ def get_role_list(role, per_page, page_no, TOKEN):
     return role_list
 
 
-def send_message(recipient_id, message_body, TOKEN):
-    url = "{}recipient_id={}&body={}\n\n".format(
-        api_message, recipient_id, message_body)
+def send_message(sender_id, receiver_ids, message_body, TOKEN):
+    url = ""
+    if isinstance(receiver_ids, list):
+        recivers = ""
+        for i in receiver_ids:
+            recivers += "{},".format(str(i))
+        url = "{}sender_id={}&receiver_ids={}&body={}".format(
+            api_message, str(sender_id), quote(recivers), message_body)
+    else:
+        url = "{}sender_id={}&receiver_ids={}&body={}".format(
+            api_message, str(sender_id), str(receiver_ids), message_body)
+
     headers = {
         "accept": "application/json",
         "X-Api-Key": get_file_content(TOKEN),
     }
-    requests.post(url, headers=headers)
+    response = requests.post(url, headers=headers)
+    if response.status_code != 201:
+        print("\nMessage failed to deliver!\n")
     return
 
 
 def main():
     try:
         motive_link = input(
-            "\n\nEnter the GoMotive dispatch url or close the Program : ")
+            "\n\nEnter copied dispatch url: ")
+        print("\nrunning...\n\n")
         trip, order_number, first_stop, last_stop, num_of_stops, STATUS = load_trip(
             motive_link)
         url_terminal, url_motive = generate_route_plan(googlemap_prefix, trip)
         driver_id = get_driver_id_from_dispatch_instance(motive_link, TOKEN)
         driver_name = get_user_name(driver_id, TSW_TOKEN)
 
-        message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n-------------------------------------------------------------\n".format(
+        message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n--------------------------------------------------------------\n".format(
             driver_name, driver_id)
-        message_body_terminal = "Google Map Route Plan\n\ndate: {}\ndriver: {}\ntrip: {} --> {} ({} stops)\n\n{}\n".format(
-            order_number, driver_name, first_stop, last_stop, num_of_stops, url_terminal)
-        message_body_motive = "Google Map Route Plan\n\ndate: {}\ndriver: {}\ntrip: {} --> {} ({} stops)\n\n{}".format(
-            order_number, driver_name, first_stop, last_stop, num_of_stops, url_motive)
+        message_info = "Google Map Route Plan\n{} --> {} ({} stops)\n\ndate: {}\ndriver: {}\n\n".format(
+            first_stop, last_stop, num_of_stops, order_number, driver_name)
+        message_body_terminal = message_info+url_terminal
+        message_body_motive = message_info+url_motive
 
         if STATUS:
             # get all the admin_id
             ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
             # send message to driver
-            send_message(driver_id, message_body_motive, TSW_TOKEN)
-
+            send_message(ADMINS[0], driver_id, message_body_motive, TSW_TOKEN)
             # send a copy of the message to all admins
-            for i in ADMINS:
-                send_message(i, message_to_admin +
-                             message_body_motive, TSW_TOKEN)
+
+            send_message(ADMINS[0], ADMINS, message_to_admin +
+                         message_body_motive, TSW_TOKEN)
             print(message_to_admin+message_body_terminal)
 
     except KeyboardInterrupt:
-        print("\nError! Please enter a valid url or close the program\n")
+        print("\n\nError! Please enter a valid url or close the program\n\n")
     main()
 
 
 if __name__ == "__main__":
     main()
-#
