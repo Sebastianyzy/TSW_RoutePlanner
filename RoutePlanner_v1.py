@@ -5,6 +5,8 @@ import urllib.parse
 import selenium
 from urllib.parse import quote
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 
 
@@ -194,7 +196,6 @@ def send_message(recipient_id, message_body, TOKEN):
     else:
         print("\nMessage Sent!\n")
     return
-
 
 def main():
     try:
