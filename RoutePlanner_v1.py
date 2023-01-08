@@ -213,19 +213,19 @@ def main():
             driver = webdriver.Chrome(executable_path=PATH)
             driver.get(url)
             time.sleep(5)
-            url_to_send = driver.current_url
+            url = driver.current_url
             driver.close()
             message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n--------------------------------------------------------------\n".format(
                 driver_name, driver_id)
             message_info = "Google Map Route Plan\n{} --> {} ({} stops)\n\ndate: {}\ndriver: {}\n\n".format(
                 first_stop, last_stop, num_of_stops, order_number, driver_name)
             # send message to driver
-            message_body = message_info+quote(url_to_send)
+            message_body = message_info+quote(url)
             send_message(driver_id, message_body, TSW_TOKEN)
             # send a copy of the message to all admins
             for i in ADMINS:
                 send_message(i, message_to_admin+message_body, TSW_TOKEN)
-            print(message_to_admin+message_body)
+            print(message_to_admin+message_info+url)
 
     except KeyboardInterrupt:
         print("\n\nError! Please enter a valid url or close the program\n\n")
