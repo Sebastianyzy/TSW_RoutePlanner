@@ -117,7 +117,7 @@ def load_trip(motive_link):
         trip.append(consignee)
         # final destination is the origin
         trip.append(company)
-        # order_number on GoMotive is the date data
+        # order_number on GoMotive is date
         order_number = parse_json["dispatch"]["order_number"]
         num_of_stops = len(trip)-2
     except:
@@ -157,9 +157,7 @@ def get_user_name(user_id, TOKEN):
         print("\nError! Unable to get user's name! ")
     return str(user_name)
 
-# return a list which contain all members with the same role
-
-
+# return a list of all members of the same role
 def get_role_list(role, per_page, page_no, TOKEN):
     role_list = []
     try:
@@ -182,7 +180,6 @@ def get_role_list(role, per_page, page_no, TOKEN):
 
 
 def send_message(recipient_id, message_body, TOKEN):
-    url = ""
     url = "{}recipient_id={}&body={}".format(
         api_message, str(recipient_id), message_body)
     headers = {
@@ -222,11 +219,13 @@ def main():
             message_info = "Google Map Route Plan\n{} --> {} ({} stops)\n\ndate: {}\ndriver: {}\n\n".format(
                 first_stop, last_stop, num_of_stops, order_number, driver_name)
             # send message to driver
-            message_body = message_info+quote(url)
+            message_body = message_info+quote(url)# the url need to be quote() to become a clickable url in the Motive chat editor
             send_message(driver_id, message_body, TSW_TOKEN)
             # send a copy of the message to all admins
+            print("\nMessage Sent Has To: {}\nSending a copy of the message to all admins...\n".format(driver_name))
             for i in ADMINS:
                 send_message(i, message_to_admin+message_body, TSW_TOKEN)
+            #the url printed on the terminal is not quoted
             print(message_to_admin+message_info+url)
 
     except KeyboardInterrupt:
