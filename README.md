@@ -13,7 +13,7 @@ Iteracts with the GoMotive Api, extract trip data, and generates a google map ro
 
 **To Run**\
 Create 3 text files: `chrome_profile.txt`, `Token.txt`,`TSW_Token.txt`\
-`DO NO SHARE THESE FILES` \
+DO NO SHARE THESE FILES \
 Store `executable_path` of the chromedriver into `chrome_profile.txt`\
 Store `X-Internal-Api-Key` into `Token.txt` \
 Store the TSW's private token into `TSW_Token.txt`\
