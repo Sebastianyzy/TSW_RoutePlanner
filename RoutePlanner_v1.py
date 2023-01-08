@@ -2,6 +2,7 @@ import requests
 import json
 import urllib
 import urllib.parse
+import selenium
 from urllib.parse import quote
 from selenium import webdriver
 import time
