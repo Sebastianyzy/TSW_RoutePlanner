@@ -188,8 +188,8 @@ def send_message(recipient_id, message_body, TOKEN):
     }
     response = requests.post(url, headers=headers)
     if response.status_code >= 300:
-        print("\nMessage failed to deliver!\n{}\n{}\n".format(
-            response, response.text, response.reason))
+        print("\nMessage failed to deliver!\n{} {}\n{}\n".format(
+            response, response.reason, response.text))
     else:
         print("\nMessage Sent!\n")
     return
@@ -197,7 +197,6 @@ def send_message(recipient_id, message_body, TOKEN):
 def main():
     try:
         motive_link = input("\n\nEnter copied dispatch url: ")
-
         print("\nrunning...\n\n")
         trip, order_number, first_stop, last_stop, num_of_stops, STATUS = load_trip(
             motive_link)
@@ -208,8 +207,9 @@ def main():
         if STATUS:
             # get all the admin_id
             ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
-            PATH = get_file_content(PROFILE_PATH)
-            driver = webdriver.Chrome(executable_path=PATH)
+            #PATH = get_file_content(PROFILE_PATH)
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+            #driver = webdriver.Chrome(executable_path=PATH)
             driver.get(url)
             time.sleep(5)
             url = driver.current_url
