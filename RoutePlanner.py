@@ -91,7 +91,7 @@ def load_trip(motive_link):
         last_stop = "{}, {}".format(
             consignee_dispatch_location["city"], consignee_dispatch_location["state"])
         # add current location as the origin
-        trip.append("Your Location")
+        trip.append(company)
         # add shipper(the second stop) address, this is how the location data is being stored in the GoMotive database
         trip.append(shipper)
         # create a hash map to sort the stops
