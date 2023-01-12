@@ -6,6 +6,7 @@ import selenium
 from urllib.parse import quote
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+import webdriver_manager
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 
@@ -64,8 +65,6 @@ def load_trip(motive_link):
     first_stop = "unknown"
     last_stop = "unknown"
     num_of_stops = "unknown"
-    # If loading trip fails, we set STATUS to false and return back to main()
-    STATUS = True
     try:
         headers = {'X-Internal-Api-Key': get_file_content(TOKEN)}  # TOKEN
         data = requests.get(generate_api_link(motive_link), headers=headers)
@@ -91,8 +90,8 @@ def load_trip(motive_link):
             shipper_dispatch_location["city"], shipper_dispatch_location["state"])
         last_stop = "{}, {}".format(
             consignee_dispatch_location["city"], consignee_dispatch_location["state"])
-        # add company's address as the origin
-        trip.append(company)
+        # add current location as the origin
+        trip.append("Your Location")
         # add shipper(the second stop) address, this is how the location data is being stored in the GoMotive database
         trip.append(shipper)
         # create a hash map to sort the stops
@@ -120,10 +119,10 @@ def load_trip(motive_link):
         # order_number on GoMotive is date
         order_number = parse_json["dispatch"]["order_number"]
         num_of_stops = len(trip)-2
+
     except:
-        STATUS = False
-        print("\nError! Unable to load trip!\n")
-    return trip, order_number, first_stop, last_stop, num_of_stops, STATUS
+        raise ValueError("\nError! Unable to load trip!\n")
+    return trip, order_number, first_stop, last_stop, num_of_stops
 
 
 def get_driver_id_from_dispatch_instance(url, TOKEN):
@@ -158,6 +157,8 @@ def get_user_name(user_id, TOKEN):
     return str(user_name)
 
 # return a list of all members of the same role
+
+
 def get_role_list(role, per_page, page_no, TOKEN):
     role_list = []
     try:
@@ -186,50 +187,86 @@ def send_message(recipient_id, message_body, TOKEN):
         "accept": "application/json",
         "X-Api-Key": get_file_content(TOKEN),
     }
+    status = True
     response = requests.post(url, headers=headers)
     if response.status_code >= 300:
         print("\nMessage failed to deliver!\n{} {}\n{}\n".format(
             response, response.reason, response.text))
+        status = False
     else:
         print("\nMessage Sent!\n")
-    return
+    return status
+
 
 def main():
-    try:
-        motive_link = input("\n\nEnter copied dispatch url: ")
-        print("\nrunning...\n\n")
-        trip, order_number, first_stop, last_stop, num_of_stops, STATUS = load_trip(
-            motive_link)
-        url = generate_route_plan(googlemap_prefix, trip)
-        driver_id = get_driver_id_from_dispatch_instance(motive_link, TOKEN)
-        driver_name = get_user_name(driver_id, TSW_TOKEN)
+    while True:
+        try:
+            motive_link = input("\n\nEnter copied dispatch url: ")
+            print("\nrunning...\n\n")
+            trip, order_number, first_stop, last_stop, num_of_stops = load_trip(
+                motive_link)
+            url = generate_route_plan(googlemap_prefix, trip)
+        except KeyboardInterrupt:
+            print("\n\nError! Keyboard Interruption\n\n")
+        except:
+            print("\nInvalid Option!\n")
+        else:
+            break
+    # Get all the drivers
+    DRIVERS = get_role_list("driver", 25, 1, TSW_TOKEN)
+    list_of_drivers = ""
+    driver_no = 1
+    for d in DRIVERS:
+        list_of_drivers += "{}. {}\n".format(
+            driver_no, get_user_name(d, TSW_TOKEN))
+        driver_no += 1
+        
+    while True:
+        try:
+            # Asking the user for input until they give a valid response
+            choose_driver_id = int(
+                input("\n\nChoose assigned driver:\n{}".format(list_of_drivers)))
+            driver_id = str(DRIVERS[choose_driver_id-1])
+            driver_name = get_user_name(driver_id, TSW_TOKEN)
 
-        if STATUS:
-            # get all the admin_id
-            ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
-            #PATH = get_file_content(PROFILE_PATH)
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-            #driver = webdriver.Chrome(executable_path=PATH)
-            driver.get(url)
-            time.sleep(5)
-            url = driver.current_url
-            driver.close()
-            message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n--------------------------------------------------------------\n".format(
-                driver_name, driver_id)
-            message_info = "Google Map Route Plan\n{} --> {} ({} stops)\n\ndate: {}\ndriver: {}\n\n".format(
-                first_stop, last_stop, num_of_stops, order_number, driver_name)
-            # send message to driver
-            message_body = message_info+quote(url)# the url need to be quote() to become a clickable url in the Motive chat editor
-            send_message(driver_id, message_body, TSW_TOKEN)
-            # send a copy of the message to all admins
-            print("\nMessage Sent Has To: {}\nSending a copy of the message to all admins...\n".format(driver_name))
-            for i in ADMINS:
-                send_message(i, message_to_admin+message_body, TSW_TOKEN)
-            #the url printed on the terminal is not quoted
-            print(message_to_admin+message_info+url)
+        except KeyboardInterrupt:
+            print("\n\nError! Keyboard Interruption\n\n")
+        except:
+            print("Invalid Option!\n")
 
-    except KeyboardInterrupt:
-        print("\n\nError! Please enter a valid url or close the program\n\n")
+        else:
+            break
+
+    # get all the admin_id
+    ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
+
+    # PATH = get_file_content(PROFILE_PATH)
+    driver = webdriver.Chrome(service=Service(
+        ChromeDriverManager().install()))
+    # driver = webdriver.Chrome(executable_path=PATH)
+    driver.get(url)
+    time.sleep(5)
+    url = driver.current_url
+    driver.close()
+
+    message_info = "Google Map Route Plan\n{} --> {} ({} stops)\n\ndate: {}\ndriver: {}\n\n".format(
+        first_stop, last_stop, num_of_stops, order_number, driver_name)
+    # sending message to driver, the url need to be quote() to become a clickable url in the Motive chat editor
+    message_body = message_info+quote(url)
+    message_status = send_message(driver_id, message_body, TSW_TOKEN)
+    message_to_admin = "\nThe Following Message Was Sent To: {} (id: {})\n--------------------------------------------------------------\n".format(
+        driver_name, driver_id)  # if message_status else "\nThe Following Message Has Failed To Sent\n--------------------------------------------------------------\n"
+    # send a copy of the message to all admins
+    if message_status:
+        print("\nMessage Sent Has To: {}\nSending a copy of the message to all admins...\n".format(
+            driver_name))
+    else:
+        print("Sending The Error Message To Admins...\n")
+    for i in ADMINS:
+        send_message(i, message_to_admin+message_body, TSW_TOKEN)
+    # the url printed on the terminal is not quoted
+    print(message_to_admin+message_info+url)
+
     main()
 
 
