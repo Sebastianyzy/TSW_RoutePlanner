@@ -220,7 +220,7 @@ def main():
         list_of_drivers += "{}. {}\n".format(
             driver_no, get_user_name(d, TSW_TOKEN))
         driver_no += 1
-        
+
     while True:
         try:
             # Asking the user for input until they give a valid response
