@@ -8,7 +8,8 @@ Iteracts with the GoMotive Api, extract trip data, and generates a google map ro
 
 **Installation**\
 `pip install requests`\
-`pip install selenium`
+`pip install selenium`\
+`pip install webdriver_manager`
 
 
 **To Run**\
