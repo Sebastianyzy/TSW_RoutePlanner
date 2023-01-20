@@ -14,7 +14,6 @@ import time
 # Motive Token
 TOKEN = "Token.txt"
 TSW_TOKEN = "TSW_Token.txt"
-PROFILE_PATH = "chrome_profile.txt"
 api_prefix = "https://api.keeptruckin.com/api/i1/dispatch_share?token="
 api_user = "https://api.keeptruckin.com/v1/users/"
 api_message = "https://api.keeptruckin.com/v1/messages?"
@@ -239,11 +238,8 @@ def main():
 
     # get all the admin_id
     ADMINS = get_role_list("admin", 25, 1, TSW_TOKEN)
-
-    # PATH = get_file_content(PROFILE_PATH)
     driver = webdriver.Chrome(service=Service(
         ChromeDriverManager().install()))
-    # driver = webdriver.Chrome(executable_path=PATH)
     driver.get(url)
     time.sleep(5)
     url = driver.current_url
