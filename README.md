@@ -1,7 +1,7 @@
-# TSW_RoutePlanner
+# RoutePlanner
 
 **Description**\
-A Route Planning Tool for TORONTO SUN WAH TRADING LTD and PLANWAY POULTRY INC.
+A Route Planning Tool for TORONTO SUN WAH TRADING LTD.
 
 **Features**\
 Iteracts with the GoMotive Api, extract trip data, and generates a google map route planner.
